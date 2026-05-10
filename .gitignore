@@ -1,19 +1,27 @@
+# macOS
 .DS_Store
+
+# Environment files
 .env
 .env.*
 !.env.example
+
+# Python
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .venv/
 venv/
 db.sqlite3
+
+# Node / frontend
 node_modules/
 dist/
 coverage/
+frontend/.playwright-cli/
+backend/frontend_dist/
+
+# Project-generated content
 .superpowers/
 backend/media/generated/
-frontend/.playwright-cli/
 docs/
-
-db.sqlite3

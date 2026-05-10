@@ -2,8 +2,8 @@ import pytest
 from decimal import Decimal
 from rest_framework.test import APIClient
 
-from trips.routing import RouteInstruction, RouteResult, RoutingError
-from trips.serializers import TripRequestSerializer
+from trips.api.serializers import TripRequestSerializer
+from trips.services.routing import RouteInstruction, RouteResult, RoutingError
 
 
 VALID_QUICK_DATA = {
@@ -102,7 +102,7 @@ def test_plan_trip_allows_route_distance_override_without_calling_provider(monke
     def fail_if_called(current_location, pickup_location, dropoff_location):
         raise AssertionError("route provider should not be called when distance is supplied")
 
-    monkeypatch.setattr("trips.views.build_route", fail_if_called)
+    monkeypatch.setattr("trips.api.views.build_route", fail_if_called)
 
     response = APIClient().post(
         "/api/trips/plan/",
@@ -138,7 +138,7 @@ def test_plan_trip_uses_routing_service_when_distance_is_not_provided(monkeypatc
             ],
         )
 
-    monkeypatch.setattr("trips.views.build_route", fake_build_route)
+    monkeypatch.setattr("trips.api.views.build_route", fake_build_route)
 
     response = APIClient().post(
         "/api/trips/plan/",
@@ -170,7 +170,7 @@ def test_plan_trip_returns_400_when_routing_service_fails(monkeypatch):
     def fake_build_route(current_location, pickup_location, dropoff_location):
         raise RoutingError("Could not build route")
 
-    monkeypatch.setattr("trips.views.build_route", fake_build_route)
+    monkeypatch.setattr("trips.api.views.build_route", fake_build_route)
 
     response = APIClient().post(
         "/api/trips/plan/",

@@ -1,6 +1,6 @@
 import pytest
 
-from trips.serializers import TripRequestSerializer
+from trips.api.serializers import TripRequestSerializer
 
 
 VALID_QUICK_DATA = {

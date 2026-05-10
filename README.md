@@ -31,25 +31,62 @@ Planning assumptions:
 
 ## Local Development
 
-These commands apply after the Phase 1 backend and frontend scaffolds are created.
+Use the Makefile from the repository root for the normal setup and run flow.
 
-Backend:
+Install Python and React dependencies:
+
+```bash
+make install
+```
+
+This creates `backend/.venv` if it does not already exist, installs
+`backend/requirements.txt`, and installs the frontend dependencies with
+`npm ci`.
+
+Build the React app and start Django:
+
+```bash
+make start
+```
+
+`make start` runs the Vite production build into `backend/frontend_dist`, then
+starts Django on `http://127.0.0.1:8000/`.
+
+Runtime routing:
+
+- `/` serves the built React frontend.
+- `/api/` serves the Django REST API.
+- `/static/frontend/` serves the built frontend assets.
+
+Run tests:
+
+```bash
+make test
+```
+
+Optional manual backend workflow:
 
 ```bash
 cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-python manage.py test
 python manage.py runserver
 ```
 
-Frontend:
+Backend source lives under `backend/src`:
+
+- `hos_planner/` contains project settings, root URLs, and frontend shell serving.
+- `trips/api/` contains HTTP request handlers, API URLs, and serializers.
+- `trips/services/` contains routing and HOS planning business logic.
+
+Optional manual frontend workflow:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
-The Vite frontend proxies `/api` to `http://127.0.0.1:8000` during local development.
+The Vite development server proxies `/api` to `http://127.0.0.1:8000`.
+For a single-port production-style run, use `make start`.

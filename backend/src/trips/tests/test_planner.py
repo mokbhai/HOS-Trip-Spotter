@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from trips.planner import RouteSummary, plan_trip
+from trips.services.planner import RouteSummary, plan_trip
 
 
 START_TIME = datetime(2026, 5, 9, 8, 0, tzinfo=ZoneInfo("Asia/Kolkata"))

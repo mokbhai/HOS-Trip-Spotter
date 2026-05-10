@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from rest_framework import serializers
 from decimal import Decimal
 
-from .planner import DEFAULT_AVERAGE_SPEED_MPH, RouteSummary, plan_trip
-from .routing import RoutingServiceError, build_route
+from trips.services.planner import DEFAULT_AVERAGE_SPEED_MPH, RouteSummary, plan_trip
+from trips.services.routing import RoutingServiceError, build_route
 from .serializers import TripPlanRequestSerializer, TripRequestSerializer
 
 

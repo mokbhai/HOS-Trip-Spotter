@@ -1,7 +1,8 @@
 from pathlib import Path
 
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parents[2]
+FRONTEND_DIST_DIR = BASE_DIR / "frontend_dist"
 
 SECRET_KEY = "dev-only"
 
@@ -36,6 +37,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 CORS_ALLOWED_ORIGINS = ["http://localhost:5173"]
 
 STATIC_URL = "static/"
+STATICFILES_DIRS = [
+    ("frontend", FRONTEND_DIST_DIR),
+]
 
 REST_FRAMEWORK = {
     "UNAUTHENTICATED_USER": None,

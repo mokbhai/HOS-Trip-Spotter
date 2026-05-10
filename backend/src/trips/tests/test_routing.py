@@ -4,8 +4,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from trips import routing
-from trips.routing import GeocodingError, RoutingError, build_route
+from trips.services import routing
+from trips.services.routing import GeocodingError, RoutingError, build_route
 
 
 class FakeFetcher:
