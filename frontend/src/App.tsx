@@ -420,7 +420,9 @@ function Timeline({ events }: { events: DutyEvent[] }) {
 
 function DailyLogSheet({ log, form, plan }: { log: DailyLog; form: TripFormState; plan: TripPlan }) {
   const displaySegments = completeDailySegments(log);
-  const totals = totalHoursByStatus(displaySegments);
+  const computedTotals = totalHoursByStatus(displaySegments);
+  const paperLog = log.paper_log;
+  const paperRemarks = paperLog?.remarks;
   const miles = dailyMiles(log, plan.events);
 
   return (
@@ -457,13 +459,24 @@ function DailyLogSheet({ log, form, plan }: { log: DailyLog; form: TripFormState
             <svg className="coded-duty-path" viewBox="0 0 1440 172" preserveAspectRatio="none" aria-hidden="true">
               <path d={dutyPathData(displaySegments, log.date)} />
             </svg>
+            {paperLog?.brackets.length ? (
+              <svg className="coded-duty-brackets" viewBox="0 0 1440 172" preserveAspectRatio="none" aria-hidden="true">
+                {paperLog.brackets.map((bracket, index) => (
+                  <path
+                    className={`coded-duty-bracket ${bracket.status}`}
+                    d={bracketPathData(bracket.start_time, bracket.end_time, bracket.status, log.date)}
+                    key={`${bracket.start_time}-${bracket.end_time}-${index}`}
+                  />
+                ))}
+              </svg>
+            ) : null}
             {statusRows.map((status, index) => (
               <div className="coded-duty-row" key={status}>
                 <strong>
                   {index + 1}: {statusLabels[status]}
                 </strong>
                 <div className="coded-duty-track" />
-                <b>{totals[status].toFixed(2)}</b>
+                <b>{paperLog?.totals[status] ?? computedTotals[status].toFixed(2)}</b>
               </div>
             ))}
           </div>
@@ -471,11 +484,15 @@ function DailyLogSheet({ log, form, plan }: { log: DailyLog; form: TripFormState
 
         <div className="coded-remarks">
           <strong>Remarks</strong>
-          {log.segments.map((segment, index) => (
-            <p key={`${segment.start_time}-${index}`}>
-              {formatTime(segment.start_time)} - {formatTime(segment.end_time)}: {segment.notes}
-            </p>
-          ))}
+          {paperRemarks
+            ? paperRemarks.map((remark, index) => (
+                <p key={`${remark.time}-${index}`}>{paperRemarkText(remark.time, remark.location, remark.activity)}</p>
+              ))
+            : log.segments.map((segment, index) => (
+                <p key={`${segment.start_time}-${index}`}>
+                  {formatTime(segment.start_time)} - {formatTime(segment.end_time)}: {segment.notes}
+                </p>
+              ))}
         </div>
 
         <div className="coded-log-footer">
@@ -493,12 +510,16 @@ function DailyLogSheet({ log, form, plan }: { log: DailyLog; form: TripFormState
       </div>
       <div className="screen-log-summary">
         <strong>Remarks</strong>
-        {log.segments.map((segment, index) => (
-          <p key={`${segment.start_time}-${index}`}>
-            {formatTime(segment.start_time)} - {formatTime(segment.end_time)}: {segment.notes}
-            {segment.location ? ` (${segment.location})` : ""}
-          </p>
-        ))}
+        {paperRemarks
+          ? paperRemarks.map((remark, index) => (
+              <p key={`${remark.time}-${index}`}>{paperRemarkText(remark.time, remark.location, remark.activity)}</p>
+            ))
+          : log.segments.map((segment, index) => (
+              <p key={`${segment.start_time}-${index}`}>
+                {formatTime(segment.start_time)} - {formatTime(segment.end_time)}: {segment.notes}
+                {segment.location ? ` (${segment.location})` : ""}
+              </p>
+            ))}
       </div>
     </article>
   );
@@ -639,6 +660,21 @@ function dutyRowY(status: DailyLogSegment["status"]) {
   return rowIndex * 43 + 21.5;
 }
 
+function bracketPathData(startTime: string, endTime: string, status: DailyLogSegment["status"], logDate: string) {
+  const startX = minuteInLogDay(startTime, logDate);
+  const endX = minuteInLogDay(endTime, logDate);
+
+  if (endX <= startX) {
+    return "";
+  }
+
+  const y = dutyRowY(status);
+  const cupTop = Math.max(y - 12, 4);
+  const cupBottom = Math.min(y + 12, 168);
+
+  return `M ${startX} ${cupTop} V ${cupBottom} H ${endX} V ${cupTop}`;
+}
+
 function formatTime(value: string) {
   const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
   if (!match) {
@@ -650,6 +686,24 @@ function formatTime(value: string) {
     new Date(Number(match[1]), Number(month) - 1, Number(day)),
   );
   return `${monthName} ${Number(day)}, ${hour}:${minute}`;
+}
+
+function formatRemarkTime(value: string) {
+  const isoTime = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (isoTime) {
+    return formatTime(value);
+  }
+
+  const clockTime = value.match(/^(\d{1,2}):(\d{2})/);
+  if (clockTime) {
+    return `${clockTime[1].padStart(2, "0")}:${clockTime[2]}`;
+  }
+
+  return value;
+}
+
+function paperRemarkText(time: string, location: string, activity: string) {
+  return `${formatRemarkTime(time)}: ${location} - ${activity}`;
 }
 
 function formatLogDate(value: string) {

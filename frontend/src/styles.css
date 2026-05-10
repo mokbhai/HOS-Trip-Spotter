@@ -658,10 +658,30 @@ select:focus {
   z-index: 2;
 }
 
+.coded-duty-brackets {
+  position: absolute;
+  left: 88px;
+  right: 56px;
+  top: 0;
+  height: 172px;
+  width: calc(100% - 144px);
+  pointer-events: none;
+  z-index: 3;
+}
+
 .coded-duty-path path {
   fill: none;
   stroke: #111;
   stroke-width: 4;
+  stroke-linejoin: miter;
+  stroke-linecap: square;
+  vector-effect: non-scaling-stroke;
+}
+
+.coded-duty-bracket {
+  fill: none;
+  stroke: #111;
+  stroke-width: 2.5;
   stroke-linejoin: miter;
   stroke-linecap: square;
   vector-effect: non-scaling-stroke;

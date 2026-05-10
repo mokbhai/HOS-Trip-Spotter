@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 import json
 import os
@@ -57,6 +57,7 @@ class RouteResult:
     duration_hours: Decimal
     geometry_coordinates: list
     instructions: list[RouteInstruction]
+    leg_distance_miles: list[Decimal] = field(default_factory=list)
 
 
 def build_route(
@@ -90,6 +91,7 @@ def build_route(
 
         return RouteResult(
             distance_miles=_meters_to_miles(route_payload["distance"]),
+            leg_distance_miles=_extract_leg_distances(route_payload),
             duration_hours=_seconds_to_hours(route_payload["duration"]),
             geometry_coordinates=coordinates,
             instructions=_extract_instructions(route_payload),
@@ -200,6 +202,31 @@ def _extract_instructions(route: dict) -> list[RouteInstruction]:
                 )
             )
     return instructions
+
+
+def _extract_leg_distances(route: dict) -> list[Decimal]:
+    if "legs" not in route:
+        raise KeyError("legs")
+    legs = route["legs"]
+    if legs is None:
+        raise TypeError("route legs must be a list")
+
+    distances = []
+    for leg in legs:
+        if not isinstance(leg, dict):
+            raise TypeError("route leg must be an object")
+        if "distance" in leg:
+            distances.append(_meters_to_miles(leg["distance"]))
+        else:
+            steps = leg.get("steps", [])
+            if steps is None:
+                raise TypeError("route steps must be a list")
+            leg_distance = sum(
+                (Decimal(str(step.get("distance", 0))) for step in steps if isinstance(step, dict)),
+                Decimal("0"),
+            )
+            distances.append(_meters_to_miles(leg_distance))
+    return distances
 
 
 def _format_step_text(step: dict) -> str:

@@ -1,6 +1,7 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import serializers
+from decimal import Decimal
 
 from .planner import DEFAULT_AVERAGE_SPEED_MPH, RouteSummary, plan_trip
 from .routing import RoutingServiceError, build_route
@@ -35,9 +36,12 @@ def plan_trip_view(request):
     route = RouteSummary(
         distance_miles=route_details["distance_miles"],
         average_speed_mph=data.get("average_speed_mph", DEFAULT_AVERAGE_SPEED_MPH),
+        pickup_distance_miles=route_details["pickup_distance_miles"],
+        loaded_distance_miles=route_details["loaded_distance_miles"],
     )
     plan = plan_trip(
         start_datetime=data["start_datetime"],
+        current_location=data["current_location"],
         pickup_location=data["pickup_location"],
         dropoff_location=data["dropoff_location"],
         route=route,
@@ -66,6 +70,8 @@ def _resolve_route_details(data):
             "geometry_coordinates": [],
             "instructions": [],
             "source": "manual",
+            "pickup_distance_miles": 0,
+            "loaded_distance_miles": data["route_distance_miles"],
         }
 
     try:
@@ -83,7 +89,21 @@ def _resolve_route_details(data):
         "geometry_coordinates": route_result.geometry_coordinates,
         "instructions": route_result.instructions,
         "source": "provider",
+        "pickup_distance_miles": _pickup_leg_distance(route_result),
+        "loaded_distance_miles": _loaded_leg_distance(route_result),
     }
+
+
+def _pickup_leg_distance(route_result):
+    if len(route_result.leg_distance_miles) >= 2:
+        return route_result.leg_distance_miles[0]
+    return 0
+
+
+def _loaded_leg_distance(route_result):
+    if len(route_result.leg_distance_miles) >= 2:
+        return sum(route_result.leg_distance_miles[1:], Decimal("0"))
+    return route_result.distance_miles
 
 
 def _serialize_route(route, route_details):
@@ -132,9 +152,18 @@ def _serialize_daily_logs(daily_logs):
                     }
                     for segment in day["segments"]
                 ],
+                "paper_log": _serialize_paper_log(day["paper_log"]),
             }
         )
     return serialized_logs
+
+
+def _serialize_paper_log(paper_log):
+    return {
+        "remarks": paper_log["remarks"],
+        "brackets": paper_log["brackets"],
+        "totals": _serialize_decimal_map(paper_log["totals"]),
+    }
 
 
 def _serialize_decimal_map(values):

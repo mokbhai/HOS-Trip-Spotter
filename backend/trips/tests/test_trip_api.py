@@ -92,6 +92,9 @@ def test_plan_trip_returns_route_events_and_daily_logs():
     assert body["totals"]["driving_hours"] == "14.00"
     assert [event["status"] for event in body["events"]].count("off_duty") == 1
     assert body["daily_logs"]
+    assert body["daily_logs"][0]["paper_log"]["totals"]["total"] == "24.00"
+    assert body["daily_logs"][0]["paper_log"]["remarks"][0]["activity"] == "Pickup"
+    assert body["daily_logs"][0]["paper_log"]["brackets"]
 
 
 @pytest.mark.django_db
@@ -123,6 +126,7 @@ def test_plan_trip_uses_routing_service_when_distance_is_not_provided(monkeypatc
         assert dropoff_location == "Phoenix, AZ"
         return RouteResult(
             distance_miles=Decimal("700.00"),
+            leg_distance_miles=[Decimal("200.00"), Decimal("500.00")],
             duration_hours=Decimal("14.00"),
             geometry_coordinates=[[-96.7970, 32.7767], [-97.7431, 30.2672]],
             instructions=[
@@ -146,6 +150,10 @@ def test_plan_trip_uses_routing_service_when_distance_is_not_provided(monkeypatc
     body = response.json()
     assert body["status"] == "planned"
     assert body["route"]["distance_miles"] == "700.00"
+    assert body["events"][0]["kind"] == "deadhead"
+    assert body["events"][0]["location"] == "Dallas, TX"
+    assert body["events"][1]["kind"] == "pickup"
+    assert body["daily_logs"][0]["paper_log"]["remarks"][0]["location"] == "Dallas, TX"
     assert body["route"]["duration_hours"] == "14.00"
     assert body["route"]["geometry_coordinates"] == [[-96.797, 32.7767], [-97.7431, 30.2672]]
     assert body["route"]["instructions"] == [

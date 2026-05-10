@@ -101,6 +101,7 @@ def test_build_route_geocodes_three_locations_and_requests_osrm_for_all_points()
     assert route_query["overview"] == ["full"]
 
     assert route.distance_miles == Decimal("2.00")
+    assert route.leg_distance_miles == [Decimal("0.62"), Decimal("1.38")]
     assert route.duration_hours == Decimal("2.00")
     assert route.geometry_coordinates == [
         [-97.7431, 30.2672],

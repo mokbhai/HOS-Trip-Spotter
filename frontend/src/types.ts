@@ -58,9 +58,38 @@ export interface DailyLogSegment {
   notes: string;
 }
 
+export interface PaperLogRemark {
+  time: string;
+  location: string;
+  activity: string;
+  status: DutyStatus;
+}
+
+export interface PaperLogBracket {
+  start_time: string;
+  end_time: string;
+  status: DutyStatus;
+}
+
+export interface PaperLogTotals {
+  off_duty: string;
+  sleeper_berth: string;
+  driving: string;
+  on_duty: string;
+  total: string;
+  working_today: string;
+}
+
+export interface PaperLog {
+  remarks: PaperLogRemark[];
+  brackets: PaperLogBracket[];
+  totals: PaperLogTotals;
+}
+
 export interface DailyLog {
   date: string;
   segments: DailyLogSegment[];
+  paper_log?: PaperLog;
 }
 
 export interface TripPlan {
