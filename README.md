@@ -64,6 +64,23 @@ Run tests:
 make test
 ```
 
+## Docker
+
+Build the container image:
+
+```bash
+docker build -t spotter-hos-planner .
+```
+
+Run the app:
+
+```bash
+docker run --rm -p 8000:8000 spotter-hos-planner
+```
+
+The Docker image runs `make install` during build and `make start` when the
+container starts. Open `http://127.0.0.1:8000/` after the container is running.
+
 Optional manual backend workflow:
 
 ```bash
