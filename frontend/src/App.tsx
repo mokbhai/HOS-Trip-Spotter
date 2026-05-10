@@ -81,7 +81,7 @@ export function App() {
           </div>
         </div>
 
-        <form className="trip-form" onSubmit={handleSubmit}>
+        <form className="trip-form" id="trip-planner-form" onSubmit={handleSubmit}>
           <fieldset>
             <legend>Route</legend>
             <TextInput
@@ -249,6 +249,9 @@ export function App() {
             />
           </fieldset>
 
+        </form>
+
+        <div className="planner-action-bar">
           {error ? (
             <div className="error-callout" role="alert">
               <AlertTriangle size={18} />
@@ -256,11 +259,11 @@ export function App() {
             </div>
           ) : null}
 
-          <button className="primary-action" type="submit" disabled={isLoading}>
+          <button className="primary-action" type="submit" form="trip-planner-form" disabled={isLoading}>
             {isLoading ? "Planning..." : "Plan compliant trip"}
             <Navigation size={18} />
           </button>
-        </form>
+        </div>
       </section>
 
       <section className="results-panel" aria-label="Trip results">
@@ -459,17 +462,6 @@ function DailyLogSheet({ log, form, plan }: { log: DailyLog; form: TripFormState
             <svg className="coded-duty-path" viewBox="0 0 1440 172" preserveAspectRatio="none" aria-hidden="true">
               <path d={dutyPathData(displaySegments, log.date)} />
             </svg>
-            {paperLog?.brackets.length ? (
-              <svg className="coded-duty-brackets" viewBox="0 0 1440 172" preserveAspectRatio="none" aria-hidden="true">
-                {paperLog.brackets.map((bracket, index) => (
-                  <path
-                    className={`coded-duty-bracket ${bracket.status}`}
-                    d={bracketPathData(bracket.start_time, bracket.end_time, bracket.status, log.date)}
-                    key={`${bracket.start_time}-${bracket.end_time}-${index}`}
-                  />
-                ))}
-              </svg>
-            ) : null}
             {statusRows.map((status, index) => (
               <div className="coded-duty-row" key={status}>
                 <strong>
@@ -658,21 +650,6 @@ function dutyPathData(segments: DailyLogSegment[], logDate: string) {
 function dutyRowY(status: DailyLogSegment["status"]) {
   const rowIndex = statusRows.indexOf(status);
   return rowIndex * 43 + 21.5;
-}
-
-function bracketPathData(startTime: string, endTime: string, status: DailyLogSegment["status"], logDate: string) {
-  const startX = minuteInLogDay(startTime, logDate);
-  const endX = minuteInLogDay(endTime, logDate);
-
-  if (endX <= startX) {
-    return "";
-  }
-
-  const y = dutyRowY(status);
-  const cupTop = Math.max(y - 12, 4);
-  const cupBottom = Math.min(y + 12, 168);
-
-  return `M ${startX} ${cupTop} V ${cupBottom} H ${endX} V ${cupTop}`;
 }
 
 function formatTime(value: string) {

@@ -50,14 +50,18 @@ select {
 }
 
 .planner-panel {
-  min-height: 100vh;
-  padding: 26px;
+  height: 100vh;
+  max-height: 100vh;
+  padding: 26px 26px 0;
   background: var(--green);
   color: #fffaf0;
   position: sticky;
   top: 0;
   align-self: start;
-  overflow-y: auto;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  overscroll-behavior: contain;
 }
 
 .brand-lockup {
@@ -95,6 +99,15 @@ select {
 .trip-form {
   display: grid;
   gap: 16px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 4px 24px 0;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.trip-form::-webkit-scrollbar {
+  display: none;
 }
 
 fieldset {
@@ -209,6 +222,7 @@ select:focus {
 }
 
 .primary-action {
+  width: 100%;
   min-height: 48px;
   border: 0;
   border-radius: 4px;
@@ -220,6 +234,14 @@ select:focus {
   background: var(--amber);
   font-weight: 900;
   cursor: pointer;
+}
+
+.planner-action-bar {
+  display: grid;
+  gap: 10px;
+  padding: 14px 0 26px;
+  background: linear-gradient(180deg, rgba(18, 49, 43, 0), var(--green) 18px);
+  z-index: 2;
 }
 
 .primary-action:disabled {
@@ -658,30 +680,10 @@ select:focus {
   z-index: 2;
 }
 
-.coded-duty-brackets {
-  position: absolute;
-  left: 88px;
-  right: 56px;
-  top: 0;
-  height: 172px;
-  width: calc(100% - 144px);
-  pointer-events: none;
-  z-index: 3;
-}
-
 .coded-duty-path path {
   fill: none;
   stroke: #111;
   stroke-width: 4;
-  stroke-linejoin: miter;
-  stroke-linecap: square;
-  vector-effect: non-scaling-stroke;
-}
-
-.coded-duty-bracket {
-  fill: none;
-  stroke: #111;
-  stroke-width: 2.5;
   stroke-linejoin: miter;
   stroke-linecap: square;
   vector-effect: non-scaling-stroke;
@@ -773,8 +775,21 @@ select:focus {
   }
 
   .planner-panel {
+    height: auto;
+    max-height: none;
     min-height: auto;
+    overflow: visible;
+    padding-bottom: 26px;
     position: static;
+  }
+
+  .trip-form {
+    overflow: visible;
+    padding: 0;
+  }
+
+  .planner-action-bar {
+    padding-bottom: 0;
   }
 
   .summary-strip,
