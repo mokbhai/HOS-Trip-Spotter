@@ -19,6 +19,7 @@ import {
   Youtube,
 } from "lucide-react";
 import { planTrip } from "./api";
+import { trackEvent } from "./openpanel";
 import type { DailyLog, DailyLogSegment, DutyEvent, TripFormState, TripPlan } from "./types";
 
 const defaultForm: TripFormState = {
@@ -78,13 +79,31 @@ export function App() {
     event.preventDefault();
     setIsLoading(true);
     setError("");
+    trackEvent("trip_plan_submitted", {
+      hos_mode: form.hos_mode,
+      has_route_distance_override: Boolean(form.route_distance_miles.trim()),
+      has_average_speed_override: Boolean(form.average_speed_mph.trim()),
+    });
 
     try {
       const result = await planTrip(form);
       setPlan(result);
+      trackEvent("trip_plan_succeeded", {
+        hos_mode: form.hos_mode,
+        route_source: result.route.source,
+        route_distance_miles: Number(result.route.distance_miles),
+        driving_hours: Number(result.totals.driving_hours),
+        events_count: result.events.length,
+        daily_logs_count: result.daily_logs.length,
+      });
     } catch (caught) {
       setPlan(null);
-      setError(caught instanceof Error ? caught.message : "Unable to plan trip.");
+      const message = caught instanceof Error ? caught.message : "Unable to plan trip.";
+      setError(message);
+      trackEvent("trip_plan_failed", {
+        hos_mode: form.hos_mode,
+        error_type: caught instanceof Error ? caught.name : "UnknownError",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -138,14 +157,20 @@ export function App() {
               <button
                 type="button"
                 className={form.hos_mode === "quick" ? "active" : ""}
-                onClick={() => setForm({ ...form, hos_mode: "quick" })}
+                onClick={() => {
+                  setForm({ ...form, hos_mode: "quick" });
+                  trackEvent("hos_mode_selected", { mode: "quick" });
+                }}
               >
                 Quick
               </button>
               <button
                 type="button"
                 className={form.hos_mode === "compliance" ? "active" : ""}
-                onClick={() => setForm({ ...form, hos_mode: "compliance" })}
+                onClick={() => {
+                  setForm({ ...form, hos_mode: "compliance" });
+                  trackEvent("hos_mode_selected", { mode: "compliance" });
+                }}
               >
                 Compliance
               </button>
@@ -296,7 +321,14 @@ export function App() {
         <p>Submitted as a Spotter full stack assignment by Mokshit Jain.</p>
         <nav aria-label="Submission links">
           {submissionLinks.map(({ label, href, icon: Icon }) => (
-            <a key={href} href={href} target="_blank" rel="noreferrer">
+            <a
+              key={href}
+              href={href}
+              target="_blank"
+              rel="noreferrer"
+              data-track="submission_link_clicked"
+              data-track-label={label}
+            >
               <Icon size={16} />
               <span>{label}</span>
               <ExternalLink size={13} />
@@ -331,7 +363,14 @@ function TripResults({ plan, form }: { plan: TripPlan; form: TripFormState }) {
             <CalendarClock size={20} />
             <h2>Daily log sheets</h2>
           </div>
-          <button className="secondary-action" type="button" onClick={() => window.print()}>
+          <button
+            className="secondary-action"
+            type="button"
+            onClick={() => {
+              trackEvent("daily_logs_printed", { daily_logs_count: plan.daily_logs.length });
+              window.print();
+            }}
+          >
             <FileDown size={17} />
             Print logs
           </button>

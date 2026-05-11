@@ -28,6 +28,12 @@ The planning endpoint resolves the submitted locations through a routing provide
 
 The public Nominatim service requires a descriptive User-Agent and limited request volume. Set `SPOTTER_ROUTING_USER_AGENT` in deployed environments.
 
+OpenPanel analytics is enabled when the environment variables are present:
+
+- Backend: copy `.env.example` to `.env` and set `OPENPANEL_CLIENT_ID`, `OPENPANEL_CLIENT_SECRET`, and `OPENPANEL_API_URL`.
+- Frontend: copy `frontend/.env.example` to `frontend/.env` and set `VITE_OPENPANEL_CLIENT_ID` and `VITE_OPENPANEL_API_URL`.
+- Set `OPENPANEL_DISABLED=true` or `VITE_OPENPANEL_DISABLED=true` to disable tracking locally.
+
 Planning assumptions:
 
 - Property-carrying driver, 70 hours / 8 days

@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework import serializers
 from decimal import Decimal
 
+from hos_planner.analytics import track_event
 from trips.services.planner import DEFAULT_AVERAGE_SPEED_MPH, RouteSummary, plan_trip
 from trips.services.routing import RoutingServiceError, build_route
 from .serializers import TripPlanRequestSerializer, TripRequestSerializer
@@ -10,6 +11,7 @@ from .serializers import TripPlanRequestSerializer, TripRequestSerializer
 
 @api_view(["GET"])
 def health(request):
+    track_event("api_health_checked")
     return Response({"status": "ok"})
 
 
@@ -17,6 +19,12 @@ def health(request):
 def validate_trip(request):
     serializer = TripRequestSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
+    track_event(
+        "trip_validated",
+        {
+            "hos_mode": serializer.validated_data.get("hos_mode"),
+        },
+    )
     return Response(
         {
             "status": "valid",
@@ -50,6 +58,19 @@ def plan_trip_view(request):
         current_day_driving_used_hours=data.get("current_day_driving_used_hours"),
         current_day_on_duty_used_hours=data.get("current_day_on_duty_used_hours"),
     )
+    track_event(
+        "trip_planned",
+        {
+            "hos_mode": data.get("hos_mode"),
+            "route_source": route_details["source"],
+            "route_distance_miles": float(route.distance_miles),
+            "driving_hours": float(plan.totals["driving_hours"]),
+            "on_duty_hours": float(plan.totals["on_duty_hours"]),
+            "off_duty_hours": float(plan.totals["off_duty_hours"]),
+            "events_count": len(plan.events),
+            "daily_logs_count": len(plan.daily_logs),
+        },
+    )
 
     return Response(
         {
@@ -81,6 +102,7 @@ def _resolve_route_details(data):
             data["dropoff_location"],
         )
     except RoutingServiceError as exc:
+        track_event("trip_route_failed", {"error_type": exc.__class__.__name__})
         raise serializers.ValidationError({"route": [str(exc)]}) from exc
 
     return {
