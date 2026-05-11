@@ -5,14 +5,18 @@ import {
   CalendarClock,
   CheckCircle2,
   ClipboardList,
+  ExternalLink,
   FileDown,
   Fuel,
   Gauge,
+  Github,
+  Globe2,
   MapPinned,
   Moon,
   Navigation,
   Route,
   Truck,
+  Youtube,
 } from "lucide-react";
 import { planTrip } from "./api";
 import type { DailyLog, DailyLogSegment, DutyEvent, TripFormState, TripPlan } from "./types";
@@ -45,6 +49,24 @@ const statusLabels = {
 };
 
 const statusRows = ["off_duty", "sleeper_berth", "driving", "on_duty"] as const;
+
+const submissionLinks = [
+  {
+    label: "Live app",
+    href: "https://hos.mokshit.jainparichay.in/",
+    icon: Globe2,
+  },
+  {
+    label: "Demo video",
+    href: "https://youtu.be/CsXG4WLkpfc?si=8i1bEWRHs8FKl1rt",
+    icon: Youtube,
+  },
+  {
+    label: "GitHub",
+    href: "https://github.com/mokbhai/HOS-Trip-Spotter",
+    icon: Github,
+  },
+] as const;
 
 export function App() {
   const [form, setForm] = useState<TripFormState>(defaultForm);
@@ -269,6 +291,19 @@ export function App() {
       <section className="results-panel" aria-label="Trip results">
         {plan ? <TripResults plan={plan} form={form} /> : <EmptyState />}
       </section>
+
+      <footer className="submission-footer">
+        <p>Submitted as a Spotter full stack assignment by Mokshit Jain.</p>
+        <nav aria-label="Submission links">
+          {submissionLinks.map(({ label, href, icon: Icon }) => (
+            <a key={href} href={href} target="_blank" rel="noreferrer">
+              <Icon size={16} />
+              <span>{label}</span>
+              <ExternalLink size={13} />
+            </a>
+          ))}
+        </nav>
+      </footer>
     </main>
   );
 }

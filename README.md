@@ -2,6 +2,14 @@
 
 Django + React assessment app for route planning and FMCSA property-carrier Hours of Service log generation.
 
+Submitted as a Spotter full stack assignment by Mokshit Jain.
+
+## Submission Links
+
+- Live app: [https://hos.mokshit.jainparichay.in/](https://hos.mokshit.jainparichay.in/)
+- Demo video: [https://youtu.be/CsXG4WLkpfc?si=8i1bEWRHs8FKl1rt](https://youtu.be/CsXG4WLkpfc?si=8i1bEWRHs8FKl1rt)
+- GitHub repository: [https://github.com/mokbhai/HOS-Trip-Spotter](https://github.com/mokbhai/HOS-Trip-Spotter)
+
 ## Current Status
 
 The backend validates trip inputs and exposes an initial HOS planning endpoint.
