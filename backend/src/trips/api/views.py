@@ -5,7 +5,7 @@ from decimal import Decimal
 
 from hos_planner.analytics import track_event
 from trips.services.planner import DEFAULT_AVERAGE_SPEED_MPH, RouteSummary, plan_trip
-from trips.services.routing import RoutingServiceError, build_route
+from trips.services.routing import RoutingServiceError, build_route, search_locations
 from .serializers import TripPlanRequestSerializer, TripRequestSerializer
 
 
@@ -13,6 +13,22 @@ from .serializers import TripPlanRequestSerializer, TripRequestSerializer
 def health(request):
     track_event("api_health_checked")
     return Response({"status": "ok"})
+
+
+@api_view(["GET"])
+def search_locations_view(request):
+    query = request.query_params.get("q", "").strip()
+    if len(query) < 3:
+        return Response({"results": []})
+
+    try:
+        results = search_locations(query)
+    except RoutingServiceError as exc:
+        track_event("location_search_failed", {"error_type": exc.__class__.__name__})
+        raise serializers.ValidationError({"q": [str(exc)]}) from exc
+
+    track_event("location_searched", {"results_count": len(results)})
+    return Response({"results": results})
 
 
 @api_view(["POST"])

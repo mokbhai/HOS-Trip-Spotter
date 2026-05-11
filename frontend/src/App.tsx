@@ -11,16 +11,18 @@ import {
   Gauge,
   Github,
   Globe2,
+  LoaderCircle,
   MapPinned,
   Moon,
   Navigation,
   Route,
+  Search,
   Truck,
   Youtube,
 } from "lucide-react";
-import { planTrip } from "./api";
+import { planTrip, searchLocations } from "./api";
 import { trackEvent } from "./openpanel";
-import type { DailyLog, DailyLogSegment, DutyEvent, TripFormState, TripPlan } from "./types";
+import type { DailyLog, DailyLogSegment, DutyEvent, LocationSuggestion, TripFormState, TripPlan } from "./types";
 
 const defaultForm: TripFormState = {
   current_location: "Dallas, TX",
@@ -125,17 +127,17 @@ export function App() {
         <form className="trip-form" id="trip-planner-form" onSubmit={handleSubmit}>
           <fieldset>
             <legend>Route</legend>
-            <TextInput
+            <LocationInput
               label="Current location"
               value={form.current_location}
               onChange={(value) => setForm({ ...form, current_location: value })}
             />
-            <TextInput
+            <LocationInput
               label="Pickup"
               value={form.pickup_location}
               onChange={(value) => setForm({ ...form, pickup_location: value })}
             />
-            <TextInput
+            <LocationInput
               label="Drop-off"
               value={form.dropoff_location}
               onChange={(value) => setForm({ ...form, dropoff_location: value })}
@@ -646,6 +648,113 @@ function TextInput({
   );
 }
 
+function LocationInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+  const inputId = useMemo(() => `${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-location-input`, [label]);
+  const listboxId = `${inputId}-results`;
+  const canSearch = value.trim().length >= 3;
+
+  useEffect(() => {
+    const query = value.trim();
+    if (query.length < 3) {
+      setSuggestions([]);
+      setSearchError("");
+      setIsSearching(false);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => {
+      setIsSearching(true);
+      setSearchError("");
+      searchLocations(query, controller.signal)
+        .then((results) => {
+          setSuggestions(results);
+          setIsOpen(document.activeElement?.id === inputId);
+        })
+        .catch((caught) => {
+          if (controller.signal.aborted) {
+            return;
+          }
+          setSuggestions([]);
+          setSearchError(caught instanceof Error ? caught.message : "Could not search locations.");
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) {
+            setIsSearching(false);
+          }
+        });
+    }, 350);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeout);
+    };
+  }, [inputId, value]);
+
+  return (
+    <label className="field location-field">
+      <span>{label}</span>
+      <div className="location-search">
+        <Search className="location-search-icon" size={16} aria-hidden="true" />
+        <input
+          id={inputId}
+          value={value}
+          onChange={(event) => {
+            onChange(event.target.value);
+            setIsOpen(true);
+          }}
+          onFocus={() => setIsOpen(true)}
+          onBlur={() => {
+            window.setTimeout(() => setIsOpen(false), 120);
+          }}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={isOpen && canSearch}
+          aria-controls={listboxId}
+          required
+        />
+        {isSearching ? <LoaderCircle className="location-search-loader" size={16} aria-hidden="true" /> : null}
+        {isOpen && canSearch ? (
+          <div className="location-results" id={listboxId} role="listbox">
+            {searchError ? <p className="location-result-note">{searchError}</p> : null}
+            {!searchError && !isSearching && suggestions.length === 0 ? (
+              <p className="location-result-note">No matching locations.</p>
+            ) : null}
+            {suggestions.map((suggestion) => (
+              <button
+                key={`${suggestion.latitude}-${suggestion.longitude}-${suggestion.display_name}`}
+                type="button"
+                role="option"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  onChange(suggestion.display_name);
+                  setIsOpen(false);
+                  trackEvent("location_suggestion_selected", { field: label, type: suggestion.type });
+                }}
+              >
+                <strong>{primaryLocationName(suggestion.display_name)}</strong>
+                <small>{secondaryLocationName(suggestion.display_name)}</small>
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </label>
+  );
+}
+
 function NumberInput({
   label,
   suffix,
@@ -683,6 +792,15 @@ function hourOfDay(value: string) {
     return 0;
   }
   return Number(time[1]) + Number(time[2]) / 60;
+}
+
+function primaryLocationName(displayName: string) {
+  return displayName.split(",")[0]?.trim() || displayName;
+}
+
+function secondaryLocationName(displayName: string) {
+  const parts = displayName.split(",").map((part) => part.trim()).filter(Boolean);
+  return parts.slice(1, 4).join(", ");
 }
 
 function dutyPathData(segments: DailyLogSegment[], logDate: string) {

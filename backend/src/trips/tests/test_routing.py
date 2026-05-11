@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from trips.services import routing
-from trips.services.routing import GeocodingError, RoutingError, build_route
+from trips.services.routing import GeocodingError, RoutingError, build_route, search_locations
 
 
 class FakeFetcher:
@@ -112,6 +112,61 @@ def test_build_route_geocodes_three_locations_and_requests_osrm_for_all_points()
         ("Depart right onto I-35", Decimal("0.62"), Decimal("0.17")),
         ("Arrive left onto US-290", Decimal("1.38"), Decimal("1.83")),
     ]
+
+
+def test_search_locations_returns_normalized_suggestions():
+    fetcher = FakeFetcher(
+        geocode_responses=[
+            [
+                {
+                    "display_name": "Dallas, Dallas County, Texas, United States",
+                    "lat": "32.7767",
+                    "lon": "-96.7970",
+                    "type": "city",
+                    "importance": 0.72,
+                },
+                {
+                    "display_name": "Dallas County, Texas, United States",
+                    "lat": "32.7668",
+                    "lon": "-96.7836",
+                    "type": "administrative",
+                    "importance": 0.61,
+                },
+            ]
+        ]
+    )
+
+    suggestions = search_locations("Dallas", fetcher=fetcher, user_agent="spotter-tests/1.0")
+
+    assert suggestions == [
+        {
+            "display_name": "Dallas, Dallas County, Texas, United States",
+            "latitude": "32.7767",
+            "longitude": "-96.7970",
+            "type": "city",
+            "importance": 0.72,
+        },
+        {
+            "display_name": "Dallas County, Texas, United States",
+            "latitude": "32.7668",
+            "longitude": "-96.7836",
+            "type": "administrative",
+            "importance": 0.61,
+        },
+    ]
+    call = fetcher.calls[0]
+    query = parse_qs(urlparse(call["url"]).query)
+    assert query["q"] == ["Dallas"]
+    assert query["format"] == ["jsonv2"]
+    assert query["limit"] == ["5"]
+    assert call["headers"]["User-Agent"] == "spotter-tests/1.0"
+
+
+def test_search_locations_skips_queries_shorter_than_three_characters():
+    fetcher = FakeFetcher()
+
+    assert search_locations("NY", fetcher=fetcher) == []
+    assert fetcher.calls == []
 
 
 def test_build_route_reuses_geocoding_result_for_duplicate_locations():

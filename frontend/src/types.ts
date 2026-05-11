@@ -21,6 +21,14 @@ export interface TripFormState {
   prior_8_days: string[];
 }
 
+export interface LocationSuggestion {
+  display_name: string;
+  latitude: string;
+  longitude: string;
+  type: string;
+  importance: number | null;
+}
+
 export interface RouteInstruction {
   text: string;
   distance_miles: string;

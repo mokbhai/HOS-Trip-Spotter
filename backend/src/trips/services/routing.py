@@ -100,6 +100,51 @@ def build_route(
         raise RoutingError("Could not build route: invalid response") from exc
 
 
+def search_locations(
+    query: str,
+    *,
+    limit: int = 5,
+    fetcher=None,
+    user_agent: str | None = None,
+) -> list[dict]:
+    normalized_query = query.strip()
+    if len(normalized_query) < 3:
+        return []
+
+    fetch_json = fetcher or _fetch_json
+    headers = {"User-Agent": user_agent or DEFAULT_USER_AGENT}
+    safe_limit = max(1, min(limit, 10))
+    url = f"{NOMINATIM_SEARCH_URL}?{urlencode({'q': normalized_query, 'format': 'jsonv2', 'limit': str(safe_limit)})}"
+
+    try:
+        payload = fetch_json(url, headers=headers)
+    except Exception as exc:
+        if isinstance(exc, RoutingServiceError):
+            raise GeocodingError(f"Could not search locations: {exc}") from exc
+        raise
+
+    if not isinstance(payload, list):
+        raise GeocodingError("Could not search locations: invalid response")
+
+    suggestions = []
+    for item in payload:
+        if not isinstance(item, dict):
+            continue
+        try:
+            suggestions.append(
+                {
+                    "display_name": str(item["display_name"]),
+                    "latitude": str(Decimal(str(item["lat"]))),
+                    "longitude": str(Decimal(str(item["lon"]))),
+                    "type": str(item.get("type") or "location"),
+                    "importance": item.get("importance"),
+                }
+            )
+        except (KeyError, InvalidOperation):
+            continue
+    return suggestions
+
+
 def _fetch_json(url: str, *, headers: dict[str, str] | None = None):
     request = Request(url, headers=headers or {})
     try:

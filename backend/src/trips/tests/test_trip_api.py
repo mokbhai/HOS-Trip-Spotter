@@ -1,5 +1,6 @@
 import pytest
 from decimal import Decimal
+from unittest.mock import MagicMock
 from rest_framework.test import APIClient
 
 from trips.api.serializers import TripRequestSerializer
@@ -71,6 +72,50 @@ def test_validate_trip_returns_field_errors_for_invalid_compliance_mode():
         "cannot exceed current_day_on_duty_used_hours"
         in body["current_day_driving_used_hours"][0]
     )
+
+
+@pytest.mark.django_db
+def test_location_search_returns_suggestions(monkeypatch):
+    def fake_search_locations(query):
+        assert query == "Dallas"
+        return [
+            {
+                "display_name": "Dallas, Dallas County, Texas, United States",
+                "latitude": "32.7767",
+                "longitude": "-96.7970",
+                "type": "city",
+                "importance": 0.72,
+            }
+        ]
+
+    monkeypatch.setattr("trips.api.views.search_locations", fake_search_locations)
+
+    response = APIClient().get("/api/locations/search/", {"q": "Dallas"})
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "results": [
+            {
+                "display_name": "Dallas, Dallas County, Texas, United States",
+                "latitude": "32.7767",
+                "longitude": "-96.7970",
+                "type": "city",
+                "importance": 0.72,
+            }
+        ]
+    }
+
+
+@pytest.mark.django_db
+def test_location_search_returns_empty_results_for_short_queries(monkeypatch):
+    search_locations_mock = MagicMock()
+    monkeypatch.setattr("trips.api.views.search_locations", search_locations_mock)
+
+    response = APIClient().get("/api/locations/search/", {"q": "NY"})
+
+    assert response.status_code == 200
+    assert response.json() == {"results": []}
+    search_locations_mock.assert_not_called()
 
 
 @pytest.mark.django_db

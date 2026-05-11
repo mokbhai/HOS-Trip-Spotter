@@ -1,4 +1,4 @@
-import type { TripFormState, TripPlan } from "./types";
+import type { LocationSuggestion, TripFormState, TripPlan } from "./types";
 
 export class ApiError extends Error {
   constructor(
@@ -22,6 +22,20 @@ export async function planTrip(form: TripFormState): Promise<TripPlan> {
   }
 
   return data as TripPlan;
+}
+
+export async function searchLocations(query: string, signal?: AbortSignal): Promise<LocationSuggestion[]> {
+  const response = await fetch(`/api/locations/search/?q=${encodeURIComponent(query)}`, { signal });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new ApiError(readableError(data), data);
+  }
+
+  if (!data || typeof data !== "object" || !Array.isArray((data as { results?: unknown }).results)) {
+    return [];
+  }
+
+  return (data as { results: LocationSuggestion[] }).results;
 }
 
 function toPayload(form: TripFormState) {
